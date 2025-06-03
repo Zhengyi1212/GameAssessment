@@ -13,6 +13,8 @@ FRONT_FACE_SHADOW_ALPHA = 75
 # --- Texture Loading (remains the same) ---
 def load_texture(filename, fallback_color):
     try:
+        # Ensure your assets are in a folder named 'assets/CubeTexture/'
+        # relative to where your script is run.
         texture = pygame.image.load(f'./assets/CubeTexture/{filename}')
         return pygame.transform.scale(texture, (GRID_SIZE, GRID_SIZE))
     except pygame.error as e:
@@ -122,9 +124,6 @@ class FloorCube(Cube):
 class _StandardDecorativeCube(Cube):
     # _load_textures is implemented by subclasses (RockCube, WoodCube)
     # _calculate_natural_border_colors uses the default Cube implementation which should work well.
-    # self.top_face_border_color will be dark from top_texture
-    # self.front_face_border_color will be dark from front_texture
-    # self.seam_line_color will be light from top_texture
 
     def draw(self, surface, x, y):
         top_face_height = int(GRID_SIZE * 0.8)
@@ -133,7 +132,7 @@ class _StandardDecorativeCube(Cube):
         if self.top_texture:
             scaled_top_texture = pygame.transform.scale(self.top_texture, (GRID_SIZE, top_face_height))
             surface.blit(scaled_top_texture, (x,y))
-        # else: fallback drawing for missing top texture
+        # else: fallback drawing for missing top texture (can be added if needed)
 
         # Top face borders
         pygame.draw.line(surface, self.top_face_border_color, (x, y), (x + GRID_SIZE - 1, y))
@@ -145,7 +144,8 @@ class _StandardDecorativeCube(Cube):
         if self.front_texture:
             scaled_front_texture = pygame.transform.scale(self.front_texture, (GRID_SIZE, front_face_height))
             surface.blit(scaled_front_texture, (x, front_face_y))
-        # else: fallback drawing for missing front texture
+        # else: fallback drawing for missing front texture (can be added if needed)
+
 
         if FRONT_FACE_SHADOW_ALPHA > 0:
             shadow_surface = pygame.Surface((GRID_SIZE, front_face_height), pygame.SRCALPHA)
@@ -170,26 +170,23 @@ class WoodCube(_StandardDecorativeCube):
 
 class WallCube(Cube):
     def __init__(self):
-        super().__init__() # This will call _load_textures and _calculate_natural_border_colors
+        super().__init__() 
         self.adjacent_status = [-1, -1, -1, -1] 
-        # WallCube specific border color will be set in its _calculate_natural_border_colors
 
     def _load_textures(self):
         self.top_texture = wall_texture_base
-        self.front_texture = wall_texture_base # Walls use the same texture for top and front
+        self.front_texture = wall_texture_base 
 
     def _calculate_natural_border_colors(self):
-        # Walls use a single, consistent darker border color derived from their texture
-        if self.top_texture: # Both top_texture and front_texture are wall_texture_base
+        if self.top_texture: 
             derived_color, _ = get_derived_border_colors(self.top_texture)
             self.wall_border_color = derived_color
         else:
             self.wall_border_color = DEFAULT_DARK_BORDER
         
-        # Set all effective border colors to this single wall_border_color
         self.top_face_border_color = self.wall_border_color
         self.front_face_border_color = self.wall_border_color
-        self.seam_line_color = self.wall_border_color # Seam for walls is also the same dark border
+        self.seam_line_color = self.wall_border_color
 
 
     def draw(self, surface, x, y):
@@ -211,7 +208,6 @@ class WallCube(Cube):
             shadow_surface.fill((0, 0, 0, FRONT_FACE_SHADOW_ALPHA))
             surface.blit(shadow_surface, (x, front_face_abs_y))
 
-        # All WallCube lines use self.wall_border_color (which is assigned to the specific face/seam colors)
         border_color = self.wall_border_color 
 
         if self.adjacent_status[1] == -1: 

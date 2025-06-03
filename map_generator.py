@@ -134,6 +134,7 @@ def main():
                 # --- Player Movement Input (Event-based) ---
                 if not player.is_grid_moving: # Only allow new move if not already moving
                     dx_event, dy_event = 0, 0
+                    swallow_event = 0
                     if event.key == pygame.K_UP:
                         dy_event = -1
                     elif event.key == pygame.K_DOWN:
@@ -142,6 +143,8 @@ def main():
                         dx_event = -1
                     elif event.key == pygame.K_RIGHT:
                         dx_event = 1
+                    elif event.key == pygame.K_SPACE:
+                        swallow_event = 1
 
                     if dx_event != 0 or dy_event != 0:
                         player.start_grid_move(dx_event, dy_event)

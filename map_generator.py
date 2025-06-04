@@ -1,8 +1,8 @@
 # map_generator.py
 import pygame
 import random
-from cube import FloorCube, WallCube, RockCube, WoodCube, GRID_SIZE
-from player import Player
+from cube import FloorCube, WallCube, RockCube, WoodCube, GRID_SIZE 
+from player import Player 
 
 FLOOR_BACKGROUND_COLOR = (46, 80, 93)
 SCREEN_WIDTH = 1000
@@ -52,41 +52,28 @@ class Maze:
             for c in range(self.width):
                 current_cube = self.grid[r][c]
                 if isinstance(current_cube, WallCube):
-                    if c > 0 and isinstance(self.grid[r][c - 1], WallCube): current_cube.adjacent_status[0] = 1
-                    else: current_cube.adjacent_status[0] = -1
+                    if c > 0 and isinstance(self.grid[r][c - 1], WallCube): current_cube.adjacent_status[0] = 1 
+                    else: current_cube.adjacent_status[0] = -1 
                     if r > 0 and isinstance(self.grid[r - 1][c], WallCube): current_cube.adjacent_status[1] = 1
-                    else: current_cube.adjacent_status[1] = -1
+                    else: current_cube.adjacent_status[1] = -1 
                     if c < self.width - 1 and isinstance(self.grid[r][c + 1], WallCube): current_cube.adjacent_status[2] = 1
-                    else: current_cube.adjacent_status[2] = -1
+                    else: current_cube.adjacent_status[2] = -1 
                     if r < self.height - 1 and isinstance(self.grid[r + 1][c], WallCube): current_cube.adjacent_status[3] = 1
-                    else: current_cube.adjacent_status[3] = -1
+                    else: current_cube.adjacent_status[3] = -1 
 
     def is_walkable(self, grid_x, grid_y):
         if 0 <= grid_x < self.width and 0 <= grid_y < self.height:
-            # Player cannot walk on WallCube, RockCube, or WoodCube
-            current_tile = self.grid[grid_y][grid_x]
-            return not isinstance(current_tile, (WallCube, RockCube, WoodCube))
+            is_wall = isinstance(self.grid[grid_y][grid_x], WallCube) 
+            return not is_wall
         return False
 
-    def draw(self, surface, player):
+    def draw(self, surface):
         for y_idx in range(self.height):
             for x_idx in range(self.width):
                 cube = self.grid[y_idx][x_idx]
                 screen_x = self.offset_x + x_idx * GRID_SIZE
                 screen_y = self.offset_y + y_idx * STAGGER_HEIGHT_PER_ROW
-
-                # always draw this grid first
                 cube.draw(surface, screen_x, screen_y)
-
-               
-                player_draw_anchor_gx = player.grid_x
-                player_draw_anchor_gy = player.grid_y 
-
-                if player.is_grid_moving and player.current_move_dx < 0: # move left
-                    player_draw_anchor_gx = player.grid_x + 1
-             
-                if y_idx == player_draw_anchor_gy and x_idx == player_draw_anchor_gx:
-                    player.draw(surface, self.offset_x, self.offset_y)
 
 def main():
     pygame.init()
@@ -94,18 +81,18 @@ def main():
     pygame.display.set_caption("Guali's Adventure")
 
     maze_width = SCREEN_WIDTH // GRID_SIZE
-    maze_height = SCREEN_HEIGHT // GRID_SIZE
-    if maze_width < 3 or maze_height < 3 :
+    maze_height = SCREEN_HEIGHT // GRID_SIZE 
+    if maze_width < 3 or maze_height < 3 : 
         print("CRITICAL ERROR: Maze dimensions (", maze_width, "x", maze_height, ") too small for default start position and borders.")
-        return
+        return 
 
     maze = Maze(maze_width, maze_height)
 
     player_start_x, player_start_y = int(maze_width/2), int(maze_height/2)
     if not maze.is_walkable(player_start_x, player_start_y):
-        print(f"WARNING: Default start ({player_start_x},{player_start_y}) is not walkable. Scanning for alternative...")
+        print(f"WARNING: Default start ({player_start_x},{player_start_y}) is not walkable. Scanning for alternative...") 
         found_start = False
-        for r_scan_idx in range(1, maze.height - 1):
+        for r_scan_idx in range(1, maze.height - 1): 
             for c_scan_idx in range(1, maze.width - 1):
                 if maze.is_walkable(c_scan_idx, r_scan_idx):
                     player_start_x, player_start_y = c_scan_idx, r_scan_idx
@@ -114,7 +101,7 @@ def main():
                     break
             if found_start: break
         if not found_start:
-            print("CRITICAL ERROR: No walkable start tile found for player! Defaulting to (1,1).")
+            print("CRITICAL ERROR: No walkable start tile found for player! Defaulting to (1,1).") 
             player_start_x, player_start_y = 1, 1
 
     player = Player(player_start_x, player_start_y, maze)
@@ -124,35 +111,30 @@ def main():
 
     while running:
         dt = clock.tick(60) / 1000.0
+        # In map_generator.py main() loop
 
+# ... (other parts of the loop like dt = clock.tick(...)) ...
+
+        # --- Event Handling for discrete actions (QUIT, Reset, MOVEMENT) ---
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.K_ESCAPE:
-                running = False
             if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    running = False
                 if event.key == pygame.K_r: # 'R' for Reset
                     print("INFO: 'R' pressed. Resetting maze and player.")
-                    maze = Maze(maze_width, maze_height)
-                    # Recalculate player_start_x, player_start_y for new maze
-                    # (This logic could be extracted into a helper function for reuse)
-                    temp_player_start_x, temp_player_start_y = int(maze_width/2), int(maze_height/2)
-                    if not maze.is_walkable(temp_player_start_x, temp_player_start_y):
-                        found_reset_start = False
-                        for r_scan_idx in range(1, maze.height - 1):
-                            for c_scan_idx in range(1, maze.width - 1):
-                                if maze.is_walkable(c_scan_idx, r_scan_idx):
-                                    temp_player_start_x, temp_player_start_y = c_scan_idx, r_scan_idx
-                                    found_reset_start = True
-                                    break
-                            if found_reset_start: break
-                        if not found_reset_start:
-                            temp_player_start_x, temp_player_start_y = 1, 1
-                    player = Player(temp_player_start_x, temp_player_start_y, maze)
+                    # ... (maze and player reset logic as you have it) ...
+                    # Example:
+                    maze = Maze(maze_width, maze_height) 
+                    # (Recalculate player_start_x, player_start_y for new maze)
+                    player = Player(player_start_x, player_start_y, maze)
+
 
                 # --- Player Movement Input (Event-based) ---
                 if not player.is_grid_moving: # Only allow new move if not already moving
                     dx_event, dy_event = 0, 0
+                    swallow_event = 0
                     if event.key == pygame.K_UP:
                         dy_event = -1
                     elif event.key == pygame.K_DOWN:
@@ -161,16 +143,22 @@ def main():
                         dx_event = -1
                     elif event.key == pygame.K_RIGHT:
                         dx_event = 1
+                    elif event.key == pygame.K_SPACE:
+                        swallow_event = 1
 
                     if dx_event != 0 or dy_event != 0:
                         player.start_grid_move(dx_event, dy_event)
-
+        
         player.update(dt)
 
         # --- Drawing ---
-        screen.fill(FLOOR_BACKGROUND_COLOR)
-        maze.draw(screen, player) # Pass player to maze for drawing order
+# ... (rest of the drawing code) ...
 
+        # --- Drawing ---
+        screen.fill(FLOOR_BACKGROUND_COLOR)
+        maze.draw(screen)
+        player.draw(screen, maze.offset_x, maze.offset_y)
+        
         pygame.display.flip()
 
     pygame.quit()

@@ -1,6 +1,7 @@
 # player.py
 import pygame
 import os 
+import math
 
 # Constants
 GRID_SIZE = 80
@@ -19,6 +20,7 @@ ATTACK_ANIMATION_SPEED = 0.07
 GRID_MOVE_DURATION = 0.2    
 
 # Attack
+ATTACK_FRAME_TO_HIT = 4 # The frame in the attack animation when damage is applied
 ATTACK_DURATION = 8 * ATTACK_ANIMATION_SPEED 
 
 class Player:
@@ -26,6 +28,10 @@ class Player:
         self.grid_x = initial_grid_x
         self.grid_y = initial_grid_y
         self.maze = maze
+
+        # --- NEW: Health Attribute ---
+        self.max_health = 3
+        self.health = self.max_health
 
         self.current_screen_x = 0.0
         self.current_screen_y = 0.0
@@ -52,6 +58,7 @@ class Player:
 
         self.is_attacking = False
         self.attack_timer = 0.0
+        self.has_dealt_damage_this_attack = False # --- NEW: Prevents multiple hits in one swing
         
         self.target_screen_x, self.target_screen_y = self._calculate_target_screen_pos(self.grid_x, self.grid_y)
         self.current_screen_x = self.target_screen_x
@@ -122,25 +129,18 @@ class Player:
 
         for direction in ["up", "down", "left", "right"]:
             if not self.animations["idle"][direction]:
-                # print(f"Warning: Idle animation for direction '{direction}' is empty after loading attempts.")
                 if self.animations["run"].get(direction) and self.animations["run"][direction]: 
-                    #  print(f"Falling back to first frame of 'run_{direction}' for 'idle_{direction}'.")
                      self.animations["idle"][direction] = [self.animations["run"][direction][0]]
                 else: 
-                    #  print(f"CRITICAL: No run animation for '{direction}' either. Creating ultimate fallback for 'idle_{direction}'.")
                      fb_surface = pygame.Surface((TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT), pygame.SRCALPHA); fb_surface.fill((0,255,0,100))
                      self.animations["idle"][direction] = [fb_surface]
 
     def _calculate_target_screen_pos(self, grid_x, grid_y):
         base_x = grid_x * GRID_SIZE
-        base_y = grid_y * STAGGER_HEIGHT_PER_ROW # Top-left of the cell's isometric diamond
-
+        base_y = grid_y * STAGGER_HEIGHT_PER_ROW 
         screen_x = base_x + (GRID_SIZE - TARGET_PLAYER_WIDTH) / 2.0
-
-        # Feet anchor at the bottom of the cell's top face (surface level)
         feet_anchor_y_on_grid_surface = base_y + STAGGER_HEIGHT_PER_ROW 
-        
-        screen_y = feet_anchor_y_on_grid_surface - TARGET_PLAYER_HEIGHT # Position sprite so feet are at anchor
+        screen_y = feet_anchor_y_on_grid_surface - TARGET_PLAYER_HEIGHT 
         return screen_x, screen_y+110
 
     def _direction_str_to_dxdy(self, direction_str):
@@ -158,7 +158,7 @@ class Player:
             self.start_grid_move(dx, dy, npcs) 
 
     def handle_key_up(self, direction_key_str, npcs):
-        pass # Not used for tap-to-move logic
+        pass
 
     def start_grid_move(self, dx, dy, npcs): 
         if self.is_grid_moving or self.is_attacking: 
@@ -166,11 +166,9 @@ class Player:
         next_grid_x = self.grid_x + dx
         next_grid_y = self.grid_y + dy
         if not self.maze.is_walkable(next_grid_x, next_grid_y):
-            # print(f"Player blocked: Tried to move to non-walkable tile ({next_grid_x}, {next_grid_y})")
             return False
         for npc in npcs: 
-            if npc.grid_x == next_grid_x and npc.grid_y == next_grid_y:
-                # print(f"Player blocked: NPC at target tile ({next_grid_x}, {next_grid_y})")
+            if npc.grid_x == next_grid_x and npc.grid_y == next_grid_y and not npc.is_dead:
                 return False
         self.grid_x = next_grid_x
         self.grid_y = next_grid_y
@@ -186,7 +184,6 @@ class Player:
         self.move_start_screen_x = self.current_screen_x
         self.move_start_screen_y = self.current_screen_y
         self.target_screen_x, self.target_screen_y = self._calculate_target_screen_pos(self.grid_x, self.grid_y)
-        # print(f"Player moving to: ({self.grid_x},{self.grid_y}). Screen target: ({self.target_screen_x:.1f},{self.target_screen_y:.1f})")
         return True
 
     def start_attack(self):
@@ -197,6 +194,33 @@ class Player:
         self.anim_frame_index = 0
         self.anim_timer = 0.0
         self.attack_timer = 0.0
+        self.has_dealt_damage_this_attack = False # Reset damage flag
+
+    # --- NEW: Method for taking damage ---
+    def take_damage(self, amount):
+        self.health -= amount
+        print(f"Player took {amount} damage, health is now {self.health}")
+        if self.health <= 0:
+            self.health = 0
+            print("Player has been defeated!")
+            # Game over logic will be handled in the main loop
+
+    # --- NEW: Method to check for attack hits ---
+    def check_attack_hit(self, npcs):
+        if self.has_dealt_damage_this_attack:
+            return
+
+        # We only check for a hit on a specific frame of the animation
+        if self.anim_frame_index == ATTACK_FRAME_TO_HIT:
+            dx, dy = self._direction_str_to_dxdy(self.facing_direction)
+            target_x, target_y = self.grid_x + dx, self.grid_y + dy
+
+            for npc in npcs:
+                if npc.grid_x == target_x and npc.grid_y == target_y and not npc.is_dead:
+                    print(f"Player attack hit {npc.npc_type} at ({target_x}, {target_y})!")
+                    npc.take_damage(1) # Player deals 1 damage
+                    self.has_dealt_damage_this_attack = True
+                    break # Stop after hitting one NPC
 
     def _update_grid_move(self, dt): 
         if not self.is_grid_moving:
@@ -213,10 +237,13 @@ class Player:
             self.current_screen_x = self.move_start_screen_x + (self.target_screen_x - self.move_start_screen_x) * progress
             self.current_screen_y = self.move_start_screen_y + (self.target_screen_y - self.move_start_screen_y) * progress
 
-    def _update_attack_state(self, dt):
+    def _update_attack_state(self, dt, npcs):
         if not self.is_attacking:
             return
+            
         self.attack_timer += dt
+        self.check_attack_hit(npcs) # Check for hit every frame the attack is active
+
         if self.attack_timer >= ATTACK_DURATION:
             self.is_attacking = False
             self.current_action = "idle"
@@ -261,12 +288,12 @@ class Player:
         if self.current_action == "idle" and self.animations["idle"].get(self.facing_direction):
             active_frames = self.animations["idle"][self.facing_direction]
         
-        if active_frames and self.anim_frame_index < len(active_frames): # Ensure index is valid
+        if active_frames and self.anim_frame_index < len(active_frames):
             self.current_image = active_frames[self.anim_frame_index]
-        elif active_frames: # Fallback to first frame of active_frames if index is bad
+        elif active_frames: 
              self.current_image = active_frames[0]
         elif self.animations["idle"]["down"] and self.animations["idle"]["down"]: 
-             self.current_image = self.animations["idle"]["down"][0] # Fallback to idle_down's first frame
+             self.current_image = self.animations["idle"]["down"][0]
         
         if self.current_image is None: 
             fb_surf = pygame.Surface((TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT), pygame.SRCALPHA)
@@ -275,19 +302,17 @@ class Player:
 
     def update(self, dt, npcs): 
         if self.is_attacking:
-            self._update_attack_state(dt) 
+            self._update_attack_state(dt, npcs) 
         elif self.is_grid_moving:
             self._update_grid_move(dt) 
         else: 
             if self.current_action != "idle":
                  self.current_action = "idle"
-                 # When transitioning to idle, reset animation to the first frame of the current facing direction's idle animation
                  self.anim_frame_index = 0 
                  self.anim_timer = 0.0
-                 # Explicitly set the image to the first idle frame
                  if self.animations["idle"].get(self.facing_direction) and self.animations["idle"][self.facing_direction]:
                      self.current_image = self.animations["idle"][self.facing_direction][0]
-                 elif self.animations["idle"]["down"] and self.animations["idle"]["down"]: # Fallback
+                 elif self.animations["idle"]["down"] and self.animations["idle"]["down"]: 
                      self.current_image = self.animations["idle"]["down"][0]
 
         self._update_animation_frames(dt)

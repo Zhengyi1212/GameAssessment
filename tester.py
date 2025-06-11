@@ -3,18 +3,18 @@ import sys
 
 # --- Configuration ---
 # Change these values to inspect different NPCs and animations
-NPC_TO_DEBUG = "orc"  # e.g., "orc" or "demon"
-ANIMATION_TO_DEBUG = "walk_up" # e.g., "walk_left", "walk_right", "fly"
+NPC_TO_DEBUG = "demon"  # e.g., "orc" or "demon"
+ANIMATION_TO_DEBUG = "fly" # e.g., "walk_left", "walk_right", "fly"
 
 
 # --- Data from your game ---
 # Copied directly from your npc.py for accuracy
 NPC_CONFIGS = {
     "orc": {
-        "sprite_sheet_path": "./assets/NPC/Orc/orc3_walk/orc3_walk_full.png",
-        "orig_frame_width": 63,
-        "orig_frame_height": 64,
-        "scale_factor": 2.5,
+        "sprite_sheet_path": "./assets/NPC/Bird/Death.png",
+        "orig_frame_width": 240,
+        "orig_frame_height": 240,
+        "scale_factor": 2,
         "animations": {
             "walk_down": (0,6), # row_index, num_frames
             "walk_up": (1, 6),
@@ -23,11 +23,11 @@ NPC_CONFIGS = {
         },
     },
     "demon": {
-        "sprite_sheet_path": "./assets/NPC/Bird/FLYING.png",
-        "orig_frame_width": 78,
-        "orig_frame_height": 64,
+        "sprite_sheet_path": "./assets/NPC/Bird/DEATH.png",
+        "orig_frame_width": 380,
+        "orig_frame_height": 320,
         "scale_factor": 1.5,
-        "animations": {"fly": (0, 4)}, # Assumes a single row for flying
+        "animations": {"fly": (0, 3)}, # Assumes a single row for flying
     }
 }
 

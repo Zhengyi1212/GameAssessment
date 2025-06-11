@@ -12,224 +12,155 @@ class Menu:
         self.clock = pygame.time.Clock()
 
         # --- Load Assets ---
-        self.background_image = self._load_image("./assets/Menu/Background.jpg", self.screen_rect.size)
-        self.start_button_img = self._load_image("./assets/Menu/Start.png")
-        self.exit_button_img = self._load_image("./assets/Menu/Exit.png")
-
-        # --- FIX: Load a custom .ttf font for the title ---
+        self.background_image = self._load_image("./assets/Menu/Background.png", self.screen_rect.size)
+        
+        # --- Font Loading ---
         try:
-            # NOTE: Change "Silver.ttf" to the actual name of your font file in the assets folder.
-            title_font_path = "./assets/font.ttf"
-            self.title_font = pygame.font.Font(title_font_path, 72)
+            font_path = "./assets/font.ttf"
+            self.title_font = pygame.font.Font(font_path, 72)
+            self.vs_font = pygame.font.Font(font_path, 90)
+            self.button_font = pygame.font.Font(font_path, 65)
         except pygame.error as e:
-            print(f"Warning: Could not load custom font at '{title_font_path}'. Error: {e}")
-            print("Falling back to default system font.")
-            self.title_font = pygame.font.SysFont("arial", 60)
+            print(f"Warning: Could not load custom font at '{font_path}'. Falling back to default font.")
+            self.title_font = pygame.font.SysFont("arial", 60, bold=True)
+            self.vs_font = pygame.font.SysFont("arial", 80, bold=True)
+            self.button_font = pygame.font.SysFont("arial", 40,bold=True),
 
+        # --- Title and UI Text ---
+        self.title_surface = self.title_font.render("A MAN WITH A SWORD", True, (255, 255, 255))
+        self.title_rect = self.title_surface.get_rect(center=(self.screen_rect.centerx, 80))
 
-        # Create button rectangles and position them
-        if self.start_button_img:
-            self.start_button_rect = self.start_button_img.get_rect(center=(self.screen_rect.centerx, self.screen_rect.centery - 50))
-        else: # Fallback if image is missing
-            self.start_button_rect = pygame.Rect(0, 0, 200, 50)
-            self.start_button_rect.center = (self.screen_rect.centerx, self.screen_rect.centery - 50)
+        self.vs_text_surface = self.vs_font.render("VS", True, (200, 200, 220))
+        self.vs_text_rect = self.vs_text_surface.get_rect(center=(self.screen_rect.centerx - 30, self.screen_rect.centery + 250))
 
-        if self.exit_button_img:
-            self.exit_button_rect = self.exit_button_img.get_rect(center=(self.screen_rect.centerx, self.screen_rect.centery + 50))
-        else: # Fallback if image is missing
-            self.exit_button_rect = pygame.Rect(0, 0, 200, 50)
-            self.exit_button_rect.center = (self.screen_rect.centerx, self.screen_rect.centery + 50)
-
-        # Create the title text surface and position it
-        self.title_text = "A MAN WITH A SWORD"
-        self.title_surface = self.title_font.render(self.title_text, True, (255, 255, 255)) # White text
-        self.title_rect = self.title_surface.get_rect()
-        self.title_rect.centerx = self.screen_rect.centerx
-        self.title_rect.bottom = self.start_button_rect.top - 20 # 20 pixels above the start button
+        # --- New Button System ---
+        self.buttons = []
+        self._create_text_buttons()
 
         # --- Character Showcase Setup ---
-        self.showcase_player = {}
-        self.showcase_npcs = []
+        self.showcase_player, self.showcase_npcs = {}, []
         self._setup_characters()
         
-        # Use a single, unified timer for all showcase animations.
-        self.showcase_timer = 0
-        self.showcase_switch_interval = 2 # 2-second interval between each animation state
+        self.showcase_timer, self.showcase_switch_interval = 0, 2 
 
     def _load_image(self, path, scale_to=None):
-        """Helper function to load an image and handle errors."""
         try:
             image = pygame.image.load(path).convert_alpha()
-            if scale_to:
-                image = pygame.transform.scale(image, scale_to)
+            if scale_to: image = pygame.transform.scale(image, scale_to)
             return image
         except pygame.error:
             print(f"Warning: Could not load image at '{path}'.")
             return None
 
+    def _create_text_buttons(self):
+        start_y = self.screen_rect.centery - 60
+        for i, text in enumerate(['Start', 'Exit']):
+            surface = self.button_font.render(text, True, (255, 255, 255))
+            rect = pygame.Rect(0, 0, 220, 70)
+            rect.center = (self.screen_rect.right - 150, start_y + i * 100)
+            self.buttons.append({'surface': surface, 'rect': rect, 'action': text.lower(), 'hovered': False})
+
     def _setup_characters(self):
-        """Create and position the characters for the showcase."""
-        # Player setup (on the left)
+        ground_y = self.screen_rect.height - (TARGET_PLAYER_HEIGHT * 1.3) + 60
+
         player = Player(0, 0, None)
-        player.facing_direction = "down"
-        player.current_screen_x = 40
-        player.current_screen_y = self.screen_rect.height - (TARGET_PLAYER_HEIGHT * 1.3) - 30
-        self.showcase_player = {
-            'object': player,
-            'animations': ['idle', 'attack'],
-            'current_anim_index': 0
-        }
+        player.facing_direction = "right"
+        player.current_screen_x, player.current_screen_y = 180, ground_y
+        self.showcase_player = {'object': player, 'animations': ['idle', 'attack'], 'current_anim_index': 0}
 
-        # Adjust X position to make more room for larger sprites
-        right_side_x = self.screen_rect.width - 100
-
-        # Create Orc1
-        orc1 = NPC(0, 0, None, npc_type="orc")
-        orc1.current_screen_x = right_side_x - 110
-        orc1.current_screen_y = self.screen_rect.centery - 45 
-        self.showcase_npcs.append({
-            'object': orc1,
-            'animations': ['walk_down', 'idle', 'walk_up', 'idle', 'walk_left', 'idle', 'walk_right', 'idle'],
-            'current_anim_index': 0
-        })
-
-        # Create Orc2
-        orc2 = NPC(0, 0, None, npc_type="orc2")
-        orc2.current_screen_x = right_side_x - 180
-        orc2.current_screen_y = self.screen_rect.centery + 60
-        self.showcase_npcs.append({
-            'object': orc2,
-            'animations': ['walk_down', 'idle', 'walk_up', 'idle', 'walk_left', 'idle', 'walk_right', 'idle'],
-            'current_anim_index': 4 
-        })
-        
-        # Create Demon
-        demon = NPC(0, 0, None, npc_type="demon")
-        demon.current_screen_x = right_side_x - 320
-        demon.current_screen_y = self.screen_rect.centery + 120
-        self.showcase_npcs.append({
-            'object': demon,
-            'animations': ['idle', 'fly'], 
-            'current_anim_index': 0
-        })
-
-        # Set initial animation state for all NPCs
+        base_x = self.screen_rect.width - 200
+        npc_data = [
+            ("orc", base_x - 90, ground_y+155, ['idle', 'walk_left']),
+            ("orc2", base_x - 160, ground_y+155, ['idle', 'walk_left']),
+            # MODIFIED: Demon Y-coordinate is now the same as the others
+            ("demon", base_x - 220, ground_y+160, ['idle', 'fly'])
+        ]
+        for type, x, y, anims in npc_data:
+            npc = NPC(0, 0, None, npc_type=type)
+            npc.facing_direction = 'left'
+            npc.current_screen_x, npc.current_screen_y = x, y
+            self.showcase_npcs.append({'object': npc, 'animations': anims, 'current_anim_index': 0})
         self._update_character_animation_states()
 
     def _update_character_animation_states(self):
-        """Sets the internal state of ALL characters based on their individual showcase animation sequence."""
-        # Update Player State
-        player_obj = self.showcase_player['object']
-        player_anim_name = self.showcase_player['animations'][self.showcase_player['current_anim_index']]
-        if player_anim_name == 'idle':
-            player_obj.current_action = 'idle'
-        elif player_anim_name == 'attack':
+        p_info = self.showcase_player
+        player_obj = p_info['object']
+        p_anim = p_info['animations'][p_info['current_anim_index']]
+        
+        if p_anim == 'attack':
             player_obj.start_attack()
+        else:
+            player_obj.current_action = 'idle'
+            player_obj.is_attacking = False
 
-        # Update NPC States
-        for npc_info in self.showcase_npcs:
-            npc = npc_info['object']
-            anim_list = npc_info['animations']
-            current_index = npc_info['current_anim_index']
-            animation_name = anim_list[current_index]
 
-            if animation_name == 'idle':
-                npc.is_moving_animation_active = False
-            elif animation_name == 'fly':
-                npc.is_moving_animation_active = True
-                npc.facing_direction = 'right'
-            elif 'walk' in animation_name:
-                npc.is_moving_animation_active = True
-                direction = animation_name.split('_')[-1]
+        for n_info in self.showcase_npcs:
+            npc, n_anim = n_info['object'], n_info['animations'][n_info['current_anim_index']]
+            npc.is_moving_animation_active = 'walk' in n_anim or 'fly' in n_anim
+            if npc.is_moving_animation_active: 
+                direction = n_anim.split('_')[-1]
                 npc.facing_direction = direction
 
+    def _draw_characters(self):
+        # Draw Player
+        player_obj = self.showcase_player['object']
+        if player_obj.current_image:
+            w, h = player_obj.current_image.get_size()
+            scaled_image = pygame.transform.scale(player_obj.current_image, (int(w * 1.3), int(h * 1.3)))
+            self.screen.blit(scaled_image, (player_obj.current_screen_x, player_obj.current_screen_y))
+
+        # Draw NPCs
+        for npc_info in self.showcase_npcs:
+            npc_obj = npc_info['object']
+            image_to_draw = npc_obj.current_base_image
+            if image_to_draw:
+                if npc_obj.sprite_flipped:
+                    image_to_draw = pygame.transform.flip(image_to_draw, True, False)
+                w, h = image_to_draw.get_size()
+                scaled_image = pygame.transform.scale(image_to_draw, (int(w * 1.3), int(h * 1.3)))
+                self.screen.blit(scaled_image, (npc_obj.current_screen_x, npc_obj.current_screen_y))
+
     def run(self):
-        """The main loop for the menu. Returns the user's choice."""
         while True:
-            dt = self.clock.tick(60) / 1000.0
+            dt, mouse_pos = self.clock.tick(60) / 1000.0, pygame.mouse.get_pos()
 
-            # --- Event Handling ---
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
+                if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE): 
                     return "exit"
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        return "exit"
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:
-                        if self.start_button_rect.collidepoint(event.pos):
-                            return "start"
-                        if self.exit_button_rect.collidepoint(event.pos):
-                            return "exit"
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    for button in self.buttons:
+                        if button['rect'].collidepoint(mouse_pos): 
+                            return button['action']
 
-            # --- Update Logic ---
-            # Use the single, unified timer to switch all character animations.
+            for button in self.buttons: 
+                button['hovered'] = button['rect'].collidepoint(mouse_pos)
+
             self.showcase_timer += dt
             if self.showcase_timer >= self.showcase_switch_interval:
                 self.showcase_timer = 0
-                
-                # Advance the animation index for the player
-                self.showcase_player['current_anim_index'] = \
-                    (self.showcase_player['current_anim_index'] + 1) % len(self.showcase_player['animations'])
-
-                # Advance the animation index for each NPC independently
-                for npc_info in self.showcase_npcs:
-                    npc_info['current_anim_index'] = (npc_info['current_anim_index'] + 1) % len(npc_info['animations'])
-                
-                # Apply all the new states to the character objects
+                self.showcase_player['current_anim_index'] = (self.showcase_player['current_anim_index'] + 1) % len(self.showcase_player['animations'])
+                for info in self.showcase_npcs: 
+                    info['current_anim_index'] = (info['current_anim_index'] + 1) % len(info['animations'])
                 self._update_character_animation_states()
 
-            # Update all character animation frames (this runs the animation itself)
             self.showcase_player['object'].update(dt, [])
-            for npc_info in self.showcase_npcs:
-                npc_info['object'].update_animation(dt)
+            for info in self.showcase_npcs: 
+                info['object'].update_animation(dt)
 
-            # --- Drawing Logic ---
-            if self.background_image:
-                self.screen.blit(self.background_image, (0, 0))
-            else:
-                self.screen.fill((46, 80, 93))
-
-            # Draw the title
-            self.screen.blit(self.title_surface, self.title_rect)
-
-            # Buttons
-            if self.start_button_img:
-                self.screen.blit(self.start_button_img, self.start_button_rect)
-            else:
-                pygame.draw.rect(self.screen, (0, 150, 0), self.start_button_rect)
-                font = pygame.font.Font(None, 36)
-                text = font.render("START", True, (255, 255, 255))
-                self.screen.blit(text, text.get_rect(center=self.start_button_rect.center))
+            if self.background_image: self.screen.blit(self.background_image, (0, 0))
+            else: self.screen.fill((46, 80, 93))
             
-            if self.exit_button_img:
-                self.screen.blit(self.exit_button_img, self.exit_button_rect)
-            else:
-                pygame.draw.rect(self.screen, (150, 0, 0), self.exit_button_rect)
-                font = pygame.font.Font(None, 36)
-                text = font.render("EXIT", True, (255, 255, 255))
-                self.screen.blit(text, text.get_rect(center=self.exit_button_rect.center))
+            self.screen.blit(self.title_surface, self.title_rect)
+            self.screen.blit(self.vs_text_surface, self.vs_text_rect)
 
-            # New character drawing logic to scale them up by 1.3x
-            # Draw Player
-            player_obj = self.showcase_player['object']
-            if player_obj.current_image:
-                original_size = player_obj.current_image.get_size()
-                new_size = (int(original_size[0] * 1.3), int(original_size[1] * 1.3))
-                scaled_image = pygame.transform.scale(player_obj.current_image, new_size)
-                self.screen.blit(scaled_image, (player_obj.current_screen_x, player_obj.current_screen_y))
+            for button in self.buttons:
+                if button['hovered']:
+                    hover_surf = pygame.Surface(button['rect'].size, pygame.SRCALPHA)
+                    # MODIFIED: Made the hover background darker and more opaque
+                    hover_surf.fill((128, 128, 128, 160))
+                    self.screen.blit(hover_surf, button['rect'].topleft)
+                text_rect = button['surface'].get_rect(center=button['rect'].center)
+                self.screen.blit(button['surface'], text_rect)
 
-            # Draw NPCs
-            for npc_info in self.showcase_npcs:
-                npc_obj = npc_info['object']
-                image_to_draw = npc_obj.current_base_image
-                if image_to_draw:
-                    if npc_obj.sprite_flipped:
-                        image_to_draw = pygame.transform.flip(image_to_draw, True, False)
-                    
-                    original_size = image_to_draw.get_size()
-                    new_size = (int(original_size[0] * 1.3), int(original_size[1] * 1.3))
-                    scaled_image = pygame.transform.scale(image_to_draw, new_size)
-                    self.screen.blit(scaled_image, (npc_obj.current_screen_x, npc_obj.current_screen_y))
-
+            self._draw_characters()
             pygame.display.flip()

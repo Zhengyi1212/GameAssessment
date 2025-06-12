@@ -29,7 +29,6 @@ class Player:
         self.grid_y = initial_grid_y
         self.maze = maze
 
-        # --- NEW: Health Attribute ---
         self.max_health = 3
         self.health = self.max_health
 
@@ -58,7 +57,11 @@ class Player:
 
         self.is_attacking = False
         self.attack_timer = 0.0
-        self.has_dealt_damage_this_attack = False # --- NEW: Prevents multiple hits in one swing
+        self.has_dealt_damage_this_attack = False
+        
+        # --- NEW: State for continuous movement ---
+        self.keys_down = {'up': False, 'down': False, 'left': False, 'right': False}
+        self.move_intent_direction = None # Stores the next intended move
         
         self.target_screen_x, self.target_screen_y = self._calculate_target_screen_pos(self.grid_x, self.grid_y)
         self.current_screen_x = self.target_screen_x
@@ -76,30 +79,11 @@ class Player:
         frames = []
         try:
             sheet = pygame.image.load(filepath).convert_alpha()
-            expected_width_for_subsurface = orig_frame_width * frame_count if not is_single_image else orig_frame_width
-            expected_height_for_subsurface = orig_frame_height
-            # print(f"DEBUG: Loading '{filepath}'. Actual Dims: ({sheet.get_width()}x{sheet.get_height()}). Expected for Subsurface Logic (approx): ({expected_width_for_subsurface}x{expected_height_for_subsurface}) based on {frame_count} frames of ({orig_frame_width}x{orig_frame_height}) each. Scaling to: ({scale_to_width}x{scale_to_height})")
-
-            if is_single_image:
-                scaled_frame = pygame.transform.scale(sheet, (scale_to_width, scale_to_height))
+            for i in range(frame_count):
+                frame_rect = pygame.Rect(i * orig_frame_width, 0, orig_frame_width, orig_frame_height)
+                frame = sheet.subsurface(frame_rect)
+                scaled_frame = pygame.transform.scale(frame, (scale_to_width, scale_to_height))
                 frames.append(scaled_frame)
-            else:
-                sheet_width_actual = sheet.get_width()
-                sheet_height_actual = sheet.get_height()
-                
-                if frame_count == 0 or orig_frame_width == 0 or orig_frame_height == 0:
-                    # print(f"Warning: Invalid frame_count ({frame_count}) or orig_frame_width/height ({orig_frame_width}x{orig_frame_height}) for {filepath}. Treating as single frame.")
-                    scaled_frame = pygame.transform.scale(sheet, (scale_to_width, scale_to_height))
-                    frames.append(scaled_frame)
-                elif orig_frame_width * frame_count > sheet_width_actual + 1 or orig_frame_height > sheet_height_actual + 1: 
-                     # print(f"ERROR: Sprite sheet '{filepath}' dimensions mismatch. Sheet is {sheet_width_actual}x{sheet_height_actual}, but trying to extract {frame_count} frames of {orig_frame_width}x{orig_frame_height} (needs {orig_frame_width*frame_count}x{orig_frame_height}). Appending fallback.")
-                     raise ValueError(f"Subsurface rectangle outside surface area for {filepath}")
-                else:
-                    for i in range(frame_count):
-                        frame_rect = pygame.Rect(i * orig_frame_width, 0, orig_frame_width, orig_frame_height)
-                        frame = sheet.subsurface(frame_rect)
-                        scaled_frame = pygame.transform.scale(frame, (scale_to_width, scale_to_height))
-                        frames.append(scaled_frame)
         except Exception as e: 
             print(f"ERROR loading sprite: {filepath} - {e}. Appending fallback surface.")
             fallback_surface = pygame.Surface((scale_to_width, scale_to_height), pygame.SRCALPHA)
@@ -111,29 +95,27 @@ class Player:
     def load_sprites(self):
         base_asset_path = './assets/Player/' 
         common_frame_count = 8
+        run_frame_count = 4 # NEW: specific frame count for run
         common_orig_w = 96 
         common_orig_h = 80
 
+        # Load Idle Sprites (8 frames)
         self._load_sprite_sheet(base_asset_path, "idle", "down", "idle_down.png", common_frame_count, common_orig_w, common_orig_h, TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT)
         self._load_sprite_sheet(base_asset_path, "idle", "up", "idle_up.png", common_frame_count, common_orig_w, common_orig_h, TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT) 
         self._load_sprite_sheet(base_asset_path, "idle", "left", "idle_left.png", common_frame_count, common_orig_w, common_orig_h, TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT) 
         self._load_sprite_sheet(base_asset_path, "idle", "right", "idle_right.png", common_frame_count, common_orig_w, common_orig_h, TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT)
-        self._load_sprite_sheet(base_asset_path, "run", "down", "run_down.png", common_frame_count, common_orig_w, common_orig_h, TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT)
-        self._load_sprite_sheet(base_asset_path, "run", "up", "run_up.png", common_frame_count, common_orig_w, common_orig_h, TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT)
-        self._load_sprite_sheet(base_asset_path, "run", "left", "run_left.png", common_frame_count, common_orig_w, common_orig_h, TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT)
-        self._load_sprite_sheet(base_asset_path, "run", "right", "run_right.png", common_frame_count, common_orig_w, common_orig_h, TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT)
+        
+        # Load Run Sprites (4 frames)
+        self._load_sprite_sheet(base_asset_path, "run", "down", "run_down.png", run_frame_count, common_orig_w, common_orig_h, TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT)
+        self._load_sprite_sheet(base_asset_path, "run", "up", "run_up.png", run_frame_count, common_orig_w, common_orig_h, TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT)
+        self._load_sprite_sheet(base_asset_path, "run", "left", "run_left.png", run_frame_count, common_orig_w, common_orig_h, TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT)
+        self._load_sprite_sheet(base_asset_path, "run", "right", "run_right.png", run_frame_count, common_orig_w, common_orig_h, TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT)
+
+        # Load Attack Sprites (8 frames)
         self._load_sprite_sheet(base_asset_path, "attack", "left", "attack1_left.png", common_frame_count, common_orig_w, common_orig_h, TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT)
         self._load_sprite_sheet(base_asset_path, "attack", "right", "attack1_right.png", common_frame_count, common_orig_w, common_orig_h, TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT) 
         self._load_sprite_sheet(base_asset_path, "attack", "up", "attack1_up.png", common_frame_count, common_orig_w, common_orig_h, TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT)       
         self._load_sprite_sheet(base_asset_path, "attack", "down", "attack1_down.png", common_frame_count, common_orig_w, common_orig_h, TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT)  
-
-        for direction in ["up", "down", "left", "right"]:
-            if not self.animations["idle"][direction]:
-                if self.animations["run"].get(direction) and self.animations["run"][direction]: 
-                     self.animations["idle"][direction] = [self.animations["run"][direction][0]]
-                else: 
-                     fb_surface = pygame.Surface((TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT), pygame.SRCALPHA); fb_surface.fill((0,255,0,100))
-                     self.animations["idle"][direction] = [fb_surface]
 
     def _calculate_target_screen_pos(self, grid_x, grid_y):
         base_x = grid_x * GRID_SIZE
@@ -150,15 +132,15 @@ class Player:
         if direction_str == "right": return 1, 0
         return 0, 0
 
-    def handle_key_down(self, direction_key_str, npcs):
-        if self.is_attacking or self.is_grid_moving: 
-            return
-        dx, dy = self._direction_str_to_dxdy(direction_key_str)
-        if dx != 0 or dy != 0:
-            self.start_grid_move(dx, dy, npcs) 
+    def handle_key_down(self, direction_key_str):
+        """Sets the state for a pressed key."""
+        if direction_key_str in self.keys_down:
+            self.keys_down[direction_key_str] = True
 
-    def handle_key_up(self, direction_key_str, npcs):
-        pass
+    def handle_key_up(self, direction_key_str):
+        """Sets the state for a released key."""
+        if direction_key_str in self.keys_down:
+            self.keys_down[direction_key_str] = False
 
     def start_grid_move(self, dx, dy, npcs): 
         if self.is_grid_moving or self.is_attacking: 
@@ -194,138 +176,98 @@ class Player:
         self.anim_frame_index = 0
         self.anim_timer = 0.0
         self.attack_timer = 0.0
-        self.has_dealt_damage_this_attack = False # Reset damage flag
+        self.has_dealt_damage_this_attack = False
 
-    # --- NEW: Method for taking damage ---
     def take_damage(self, amount):
         self.health -= amount
-        print(f"Player took {amount} damage, health is now {self.health}")
         if self.health <= 0:
             self.health = 0
-            print("Player has been defeated!")
-            # Game over logic will be handled in the main loop
 
-    # --- NEW: Method to check for attack hits ---
     def check_attack_hit(self, npcs):
-        if self.has_dealt_damage_this_attack:
-            return
+        if self.has_dealt_damage_this_attack: return
 
-        # We only check for a hit on a specific frame of the animation
         if self.anim_frame_index == ATTACK_FRAME_TO_HIT:
             dx, dy = self._direction_str_to_dxdy(self.facing_direction)
             target_x, target_y = self.grid_x + dx, self.grid_y + dy
 
             for npc in npcs:
                 if npc.grid_x == target_x and npc.grid_y == target_y and not npc.is_dead:
-                    print(f"Player attack hit {npc.npc_type} at ({target_x}, {target_y})!")
-                    npc.take_damage(1) # Player deals 1 damage
+                    npc.take_damage(1)
                     self.has_dealt_damage_this_attack = True
-                    break # Stop after hitting one NPC
+                    break
+
+    def _update_movement(self, npcs):
+        """Checks for held-down keys and initiates movement."""
+        if self.is_grid_moving or self.is_attacking:
+            return
+
+        # Determine direction from pressed keys
+        direction_to_move = None
+        if self.keys_down['up']: direction_to_move = 'up'
+        elif self.keys_down['down']: direction_to_move = 'down'
+        elif self.keys_down['left']: direction_to_move = 'left'
+        elif self.keys_down['right']: direction_to_move = 'right'
+
+        if direction_to_move:
+            dx, dy = self._direction_str_to_dxdy(direction_to_move)
+            self.start_grid_move(dx, dy, npcs)
+        else:
+            # No keys are pressed, switch to idle
+            if self.current_action == 'run':
+                self.current_action = 'idle'
+                self.anim_frame_index = 0
+                self.anim_timer = 0.0
 
     def _update_grid_move(self, dt): 
-        if not self.is_grid_moving:
-            return
+        if not self.is_grid_moving: return
         self.grid_move_timer += dt
         progress = self.grid_move_timer / GRID_MOVE_DURATION
         if progress >= 1.0:
             progress = 1.0
             self.is_grid_moving = False
-            self.current_action = "idle"
-            self.current_screen_x = self.target_screen_x
-            self.current_screen_y = self.target_screen_y
-        else:
-            self.current_screen_x = self.move_start_screen_x + (self.target_screen_x - self.move_start_screen_x) * progress
-            self.current_screen_y = self.move_start_screen_y + (self.target_screen_y - self.move_start_screen_y) * progress
+            # Don't set to idle here, let _update_movement decide based on keys
+        self.current_screen_x = self.move_start_screen_x + (self.target_screen_x - self.move_start_screen_x) * progress
+        self.current_screen_y = self.move_start_screen_y + (self.target_screen_y - self.move_start_screen_y) * progress
 
     def _update_attack_state(self, dt, npcs):
-        if not self.is_attacking:
-            return
-            
+        if not self.is_attacking: return
         self.attack_timer += dt
-        self.check_attack_hit(npcs) # Check for hit every frame the attack is active
-
+        self.check_attack_hit(npcs)
         if self.attack_timer >= ATTACK_DURATION:
             self.is_attacking = False
             self.current_action = "idle"
-            self.attack_timer = 0.0
-            self.anim_frame_index = 0 
 
     def _update_animation_frames(self, dt):
-        if not self.current_action or not self.facing_direction:
-            self._update_current_image() 
-            return
-        frames_list = []
-        anim_speed = DEFAULT_ANIMATION_SPEED
-        animation_set = self.animations.get(self.current_action)
-        if animation_set:
-            frames_list = animation_set.get(self.facing_direction, [])
-        if self.current_action == "attack":
-            anim_speed = ATTACK_ANIMATION_SPEED
-        if not frames_list: 
-            if self.animations["idle"].get(self.facing_direction) and self.animations["idle"][self.facing_direction]:
-                frames_list = self.animations["idle"][self.facing_direction]
-            elif self.animations["idle"]["down"] and self.animations["idle"]["down"]: 
-                 frames_list = self.animations["idle"]["down"]
-            else: 
-                if self.current_image is None: 
-                    fb_surf = pygame.Surface((TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT), pygame.SRCALPHA); fb_surf.fill((0,0,255,120))
-                    self.current_image = fb_surf
-                return
+        frames_list = self.animations.get(self.current_action, {}).get(self.facing_direction, [])
+        if not frames_list: return
+        
+        anim_speed = ATTACK_ANIMATION_SPEED if self.current_action == "attack" else DEFAULT_ANIMATION_SPEED
+        
         self.anim_timer += dt
         if self.anim_timer >= anim_speed:
             self.anim_timer -= anim_speed
-            if self.current_action == "attack" and self.anim_frame_index == len(frames_list) -1 and self.attack_timer < ATTACK_DURATION:
-                pass 
-            else:
-                self.anim_frame_index = (self.anim_frame_index + 1) % len(frames_list)
-        if self.anim_frame_index < len(frames_list):
-            self.current_image = frames_list[self.anim_frame_index]
-        elif frames_list : 
-            self.current_image = frames_list[0]
+            self.anim_frame_index = (self.anim_frame_index + 1) % len(frames_list)
+        
+        self.current_image = frames_list[self.anim_frame_index]
 
     def _update_current_image(self):
-        active_frames = []
-        if self.current_action == "idle" and self.animations["idle"].get(self.facing_direction):
-            active_frames = self.animations["idle"][self.facing_direction]
-        
-        if active_frames and self.anim_frame_index < len(active_frames):
-            self.current_image = active_frames[self.anim_frame_index]
-        elif active_frames: 
-             self.current_image = active_frames[0]
-        elif self.animations["idle"]["down"] and self.animations["idle"]["down"]: 
-             self.current_image = self.animations["idle"]["down"][0]
-        
-        if self.current_image is None: 
-            fb_surf = pygame.Surface((TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT), pygame.SRCALPHA)
-            fb_surf.fill((0,0,255,120)) 
-            self.current_image = fb_surf
+        """Ensures a valid image is always set."""
+        if self.current_image is None:
+            active_frames = self.animations.get(self.current_action, {}).get(self.facing_direction, [])
+            if active_frames:
+                self.current_image = active_frames[0]
+            else: # Fallback
+                self.current_image = self.animations['idle']['down'][0]
 
     def update(self, dt, npcs): 
-        if self.is_attacking:
-            self._update_attack_state(dt, npcs) 
-        elif self.is_grid_moving:
-            self._update_grid_move(dt) 
-        else: 
-            if self.current_action != "idle":
-                 self.current_action = "idle"
-                 self.anim_frame_index = 0 
-                 self.anim_timer = 0.0
-                 if self.animations["idle"].get(self.facing_direction) and self.animations["idle"][self.facing_direction]:
-                     self.current_image = self.animations["idle"][self.facing_direction][0]
-                 elif self.animations["idle"]["down"] and self.animations["idle"]["down"]: 
-                     self.current_image = self.animations["idle"]["down"][0]
-
+        self._update_movement(npcs)
+        self._update_grid_move(dt)
+        self._update_attack_state(dt, npcs)
         self._update_animation_frames(dt)
-        if self.current_image is None : 
-            self._update_current_image()
+        self._update_current_image()
 
     def draw(self, surface, maze_offset_x, maze_offset_y):
         if self.current_image:
             draw_x = self.current_screen_x + maze_offset_x
             draw_y = self.current_screen_y + maze_offset_y
             surface.blit(self.current_image, (draw_x, draw_y))
-        else: 
-            pygame.draw.rect(surface, (255, 0, 0), 
-                             (self.current_screen_x + maze_offset_x, 
-                              self.current_screen_y + maze_offset_y, 
-                              TARGET_PLAYER_WIDTH, TARGET_PLAYER_HEIGHT))

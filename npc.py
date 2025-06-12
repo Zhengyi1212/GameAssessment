@@ -75,7 +75,7 @@ NPC_CONFIGS = {
         "attack_sprite_sheet_path": "./assets/NPC/Bird/ATTACK.png", 
         "death_sprite_sheet_path": "./assets/NPC/Bird/DEATH.png",  #
         "orig_frame_width": 78, "orig_frame_height": 64,
-        "attack_frame_width":120 , "attack_frame_height": 120, # <<< FILL THIS IN
+        "attack_frame_width":79 , "attack_frame_height": 69, # <<< FILL THIS IN
         "death_frame_width": 340, "death_frame_height": 300,   # <<< FILL THIS IN
         "scale_factor": 1.5, "y_draw_offset": 0,
         "animations": {"fly": (0, 4)},

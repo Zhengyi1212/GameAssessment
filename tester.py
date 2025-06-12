@@ -23,11 +23,11 @@ NPC_CONFIGS = {
         },
     },
     "demon": {
-        "sprite_sheet_path": "./assets/NPC/Bird/DEATH.png",
-        "orig_frame_width": 380,
-        "orig_frame_height": 320,
+        "sprite_sheet_path": "./assets/NPC/Bird/ATTACK.png",
+        "orig_frame_width": 79,
+        "orig_frame_height": 69,
         "scale_factor": 1.5,
-        "animations": {"fly": (0, 3)}, # Assumes a single row for flying
+        "animations": {"fly": (0, 8)}, # Assumes a single row for flying
     }
 }
 

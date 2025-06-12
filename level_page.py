@@ -16,6 +16,16 @@ class LevelPage:
         except pygame.error as e:
             print(f"Warning: Could not load click sound: {e}")
             self.click_sound = None
+            
+        # --- NEW: Load Back Button Sprite ---
+        try:
+            self.back_button_img = pygame.image.load('./assets/Menu/back.png').convert_alpha()
+            self.back_button_img = pygame.transform.scale(self.back_button_img, (50, 50))
+            self.back_button_rect = self.back_button_img.get_rect(topleft=(20, 20))
+        except pygame.error as e:
+            print(f"Warning: Could not load back button image: {e}")
+            self.back_button_img = None
+
 
         # --- Font Loading ---
         try:
@@ -73,6 +83,12 @@ class LevelPage:
                         self.click_sound.play()
                     return 'menu'
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                # --- NEW: Check for back button click ---
+                if self.back_button_rect and self.back_button_rect.collidepoint(mouse_pos):
+                    if self.click_sound:
+                        self.click_sound.play()
+                    return 'menu'
+
                 unlocked_count = self.level_controller.get_unlocked_level_count()
                 for level_num, rect in self.level_rects.items():
                     if rect.collidepoint(mouse_pos) and level_num <= unlocked_count:
@@ -87,6 +103,10 @@ class LevelPage:
         title_surf = self.title_font.render("Level", True, self.text_color)
         title_rect = title_surf.get_rect(center=(self.screen_rect.centerx, 100))
         self.screen.blit(title_surf, title_rect)
+
+        # --- NEW: Draw the back button ---
+        if self.back_button_img:
+            self.screen.blit(self.back_button_img, self.back_button_rect)
 
         # Draw level boxes
         unlocked_count = self.level_controller.get_unlocked_level_count()

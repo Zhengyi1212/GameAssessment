@@ -5,7 +5,7 @@ from menu import Menu
 from level_page import LevelPage
 from level_controller import LevelController
 from cube import GRID_SIZE
-from player import Player
+from player import Player, DEATH_SEQUENCE_DURATION
 from npc import NPC
 
 # Game Constants
@@ -65,7 +65,7 @@ def game_loop(screen, level_controller, level_number):
     game_over_rect = game_over_text.get_rect(center=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2))
 
     win_font = pygame.font.SysFont("arial", 80, bold=True)
-    win_text = win_font.render("YOU WIN!\nPlease press enter to continue!", True, (0, 255, 0))
+    win_text = win_font.render("YOU WIN!", True, (0, 255, 0))
    
     win_rect = win_text.get_rect(center=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2))
 
@@ -94,20 +94,16 @@ def game_loop(screen, level_controller, level_number):
             if not paused:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE: return 'level_select'
-                    if event.key == pygame.K_UP: player.handle_key_down('up')
-                    elif event.key == pygame.K_DOWN: player.handle_key_down('down')
-                    elif event.key == pygame.K_LEFT: player.handle_key_down('left')
-                    elif event.key == pygame.K_RIGHT: player.handle_key_down('right')
-                    elif event.key == pygame.K_SPACE: player.start_attack()
+                    
+                    # Pass movement and attack presses to the player
+                    player.handle_key_down(event.key, maze.npcs)
                     
                     if (game_over or win) and event.key == pygame.K_RETURN:
                         return 'win' if win else 'lose'
-
+                
                 if event.type == pygame.KEYUP:
-                    if event.key == pygame.K_UP: player.handle_key_up('up')
-                    elif event.key == pygame.K_DOWN: player.handle_key_up('down')
-                    elif event.key == pygame.K_LEFT: player.handle_key_up('left')
-                    elif event.key == pygame.K_RIGHT: player.handle_key_up('right')
+                    # Let the player know when a movement key is released
+                    player.handle_key_up(event.key)
 
 
         # --- Updates (only if not paused) ---
@@ -120,8 +116,11 @@ def game_loop(screen, level_controller, level_number):
 
             maze.npcs = [npc for npc in maze.npcs if not (npc.is_dead and npc.death_timer > npc.config["death_duration"])]
 
-            if player.health <= 0: game_over = True
-            if not maze.npcs: win = True
+            # --- REVISED Game Over/Win Conditions ---
+            if not game_over and player.is_dead and player.death_timer > DEATH_SEQUENCE_DURATION:
+                game_over = True
+            if not win and not maze.npcs:
+                win = True
 
         # --- Drawing ---
         screen.fill(FLOOR_BACKGROUND_COLOR)
@@ -150,7 +149,7 @@ def main():
     pygame.init()
     pygame.mixer.init() 
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption("A Man With a Sword")
+    pygame.display.set_caption("THE DUNDEON WARRIOR")
 
     # --- Music Setup ---
     try:

@@ -85,7 +85,7 @@ WWWWWWWWWWWW
 W OR WOROWOW
 W W   W   WW
 W R O R O RW
-W    W   W W
+W    W     W
 W O R O R OW
 W          W
 W R O R O RW
@@ -100,7 +100,7 @@ W O      R W
 W R W  W W O
 W O W  W   R
 W R W RW W O
-W  W O  W RW 
+W       W  W 
 W R W RW W O
 W O    W   R
 W R W WW W O
@@ -110,27 +110,27 @@ WWWWWWWWWWWW
 
 #LEVEL 9
 WWWWWWWWWWWW
-W RWOWOWOWRW
+W R OWO OWRW
 W   W W W WW
-W ROR O   RW
+W R R O   RW
 W  W     W W
-W O     O OW
+W       O OW
 W W WWW W  W
-W R   O   RW
+W     O   RW
 W W W W W WW
-WRWOWOWOWRW
+WRW  WO    W
 WWWWWWWWWWWW
 #ENDLEVEL 9
 
 #LEVEL 10
 WWWWWWWWWWWW
-WRW R W OWRW
+W W R W OWRW
 W   W O W OW
 W R O   O RW
 W   W W W OW
 W R O R O RW
-W O   W   OW
-W R O R O RW
+W     W   OW
+W R     O RW
 W O W O W OW
 WRW O W RWRW
 WWWWWWWWWWWW

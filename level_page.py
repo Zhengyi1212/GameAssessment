@@ -10,6 +10,13 @@ class LevelPage:
         self.level_controller = level_controller
         self.clock = pygame.time.Clock()
 
+        # --- Load Sound ---
+        try:
+            self.click_sound = pygame.mixer.Sound('./assets/click.mp3')
+        except pygame.error as e:
+            print(f"Warning: Could not load click sound: {e}")
+            self.click_sound = None
+
         # --- Font Loading ---
         try:
             font_path = "./assets/font.ttf"
@@ -62,11 +69,15 @@ class LevelPage:
         for event in events:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
+                    if self.click_sound:
+                        self.click_sound.play()
                     return 'menu'
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 unlocked_count = self.level_controller.get_unlocked_level_count()
                 for level_num, rect in self.level_rects.items():
                     if rect.collidepoint(mouse_pos) and level_num <= unlocked_count:
+                        if self.click_sound:
+                            self.click_sound.play()
                         return level_num
 
         # --- Drawing ---
@@ -93,4 +104,3 @@ class LevelPage:
             level_text_surf = self.level_font.render(str(level_num), True, self.text_color)
             level_text_rect = level_text_surf.get_rect(center=rect.center)
             self.screen.blit(level_text_surf, level_text_rect)
-

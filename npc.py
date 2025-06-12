@@ -9,39 +9,36 @@ GRID_SIZE = 80
 STAGGER_HEIGHT_PER_ROW = int(GRID_SIZE * 0.8)
 ANIMATION_SPEED = 0.1 
 GRID_MOVE_DURATION = 0.3
+NPC_HURT_SOUND = None
+# --- NEW: Load NPC hurt sound once at module level for efficiency ---
+try:
+    pygame.mixer.init()
+    NPC_HURT_SOUND = pygame.mixer.Sound('./assets/npc.mp3')
+except pygame.error as e:
+    print(f"Warning: Could not load npc.mp3 sound: {e}")
+    NPC_HURT_SOUND = None
 
-# --- NEW/REVISED NPC CONFIGURATIONS ---
+# --- UPDATED NPC CONFIGURATIONS ---
+# Orcs will use their death_sprite_sheet, but the Demon will not.
 NPC_CONFIGS = {
     "orc": {
         "sprite_sheet_path": "./assets/NPC/Orc/orc3_walk/orc3_walk_full.png",
-        "attack_sprite_sheet_path": "./assets/NPC/Orc/orc3_attack/orc3_attack_full.png", # 
-        "death_sprite_sheet_path": "./assets/NPC/Orc/orc3_death/orc3_death_full.png", # <
-        "orig_frame_width": 63, 
-        "orig_frame_height": 64, 
-        "attack_frame_width": 63, # <
-        "attack_frame_height": 64,# 
-        "death_frame_width": 63,
-        "death_frame_height": 64, 
-        "scale_factor": 2.4,
-        "y_draw_offset": 50,
-        "animations": { 
-            "walk_down": (0, 6), "walk_up": (1, 6), "walk_left": (2, 6), "walk_right": (3, 6)  
-        },
-        "attack_animations": {
-            "attack_down": (0,8), "attack_up": (1,8), "attack_left": (2,8), "attack_right": (3,8)
-        },
-        "death_animations": {
-            "death": (0,8) 
-        },
+        "attack_sprite_sheet_path": "./assets/NPC/Orc/orc3_attack/orc3_attack_full.png", 
+        "death_sprite_sheet_path": "./assets/NPC/Orc/orc3_death/orc3_death_full.png", 
+        "orig_frame_width": 63, "orig_frame_height": 64, 
+        "attack_frame_width": 63, "attack_frame_height": 64,
+        "death_frame_width": 63, "death_frame_height": 64, 
+        "scale_factor": 2.4, "y_draw_offset": 50,
+        "animations": { "walk_down": (0, 6), "walk_up": (1, 6), "walk_left": (2, 6), "walk_right": (3, 6) },
+        "attack_animations": { "attack_down": (0,8), "attack_up": (1,8), "attack_left": (2,8), "attack_right": (3,8) },
+        "death_animations": { "death": (0,8) },
         "idle_frames_source_anim": "walk_down",
         "movement_speed_duration": GRID_MOVE_DURATION,
-        "chase_speed_duration": GRID_MOVE_DURATION * 0.8, # Faster when chasing
+        "chase_speed_duration": GRID_MOVE_DURATION * 0.8,
         "animation_playback_speed": ANIMATION_SPEED,
-        "health": 1,
-        "detection_range": 3,
-        "attack_range": 2,
-        "attack_interval": 1.5, # Time between attacks
-        "attack_duration": 0.8, # How long the attack animation plays
+        "health": 1, "detection_range": 3, "attack_range": 2,
+        "attack_interval": 1.5,
+        "attack_duration": 0.8,
         "death_duration": 1.5
     },
     "orc2": {
@@ -53,19 +50,13 @@ NPC_CONFIGS = {
         "death_frame_width": 63, "death_frame_height": 64,  
         "scale_factor": 2.4, "y_draw_offset": 50,
         "animations": { "walk_down": (0, 6), "walk_up": (1, 6), "walk_left": (2, 6), "walk_right": (3, 6) },
-        "attack_animations": {
-            "attack_down": (0,8), "attack_up": (1,8), "attack_left": (2,8), "attack_right": (3,8)
-        },
-        "death_animations": {
-            "death": (0,8) #
-        },
+        "attack_animations": { "attack_down": (0,8), "attack_up": (1,8), "attack_left": (2,8), "attack_right": (3,8) },
+        "death_animations": { "death": (0,8) },
         "idle_frames_source_anim": "walk_down",
         "movement_speed_duration": GRID_MOVE_DURATION,
         "chase_speed_duration": GRID_MOVE_DURATION * 0.8,
         "animation_playback_speed": ANIMATION_SPEED,
-        "health": 1,
-        "detection_range": 2,
-        "attack_range": 1,
+        "health": 1, "detection_range": 2, "attack_range": 1,
         "attack_interval": 2.5,
         "attack_duration": 1.0,
         "death_duration": 1.5
@@ -73,26 +64,22 @@ NPC_CONFIGS = {
     "demon": {
         "sprite_sheet_path": "./assets/NPC/Bird/FLYING.png",
         "attack_sprite_sheet_path": "./assets/NPC/Bird/ATTACK.png", 
-        "death_sprite_sheet_path": "./assets/NPC/Bird/DEATH.png",  #
+        # No death sprite sheet for the demon, as it will use its attack animation for death.
         "orig_frame_width": 78, "orig_frame_height": 64,
-        "attack_frame_width":79 , "attack_frame_height": 69, # <<< FILL THIS IN
-        "death_frame_width": 340, "death_frame_height": 300,   # <<< FILL THIS IN
+        "attack_frame_width":79 , "attack_frame_height": 69,
         "scale_factor": 1.5, "y_draw_offset": 0,
         "animations": {"fly": (0, 4)},
-        "attack_animations": { "attack": (0,8) }, # <<< FILL (row, num_frames)
-        "death_animations": { "death": (0,3) },   # <<< FILL (row, num_frames)
+        "attack_animations": { "attack": (0,8) },
         "idle_frames_source_anim": "fly",
         "movement_speed_duration": GRID_MOVE_DURATION * 0.8,
-        "chase_speed_duration": GRID_MOVE_DURATION * 0.7, # Very fast when chasing
+        "chase_speed_duration": GRID_MOVE_DURATION * 0.7, 
         "animation_playback_speed": ANIMATION_SPEED * 0.8,
-        "fly_over_obstacle_chance": 0.7,
+        "fly_over_obstacle_chance": 0.8,
         "fly_height_offset": int(GRID_SIZE * 0.6),
-        "health": 1,
-        "detection_range": 5,
-        "attack_range": 1,
+        "health": 1, "detection_range": 5, "attack_range": 1,
         "attack_interval": 2.0,
         "attack_duration": 0.7,
-        "death_duration": 1.0
+        "death_duration": 0.7 # Matched to attack duration
     }
 }
 
@@ -125,13 +112,11 @@ class NPC:
         self.anim_frame_index, self.anim_timer = 0, 0.0
         self.animation_playback_speed = self.config["animation_playback_speed"]
 
-        # --- REVISED FSM ---
-        self.fsm_state = 'idle' # idle, choosing_move, moving, chasing, attacking, dead
+        self.fsm_state = 'idle' 
         self.fsm_timer = random.uniform(1.5, 4.0)
         self.current_planned_dx, self.current_planned_dy = 0, 0
         self.steps_to_take, self.blocked_attempts = 0, 0
 
-        # --- NEW Attributes ---
         self.health = self.config["health"]
         self.is_attacking, self.attack_timer, self.attack_cooldown = False, 0.0, 0.0
         self.is_dead, self.death_timer = False, 0.0
@@ -157,36 +142,39 @@ class NPC:
         except Exception as e:
             print(f"ERROR loading NPC sprite from '{path}' for '{self.npc_type}': {e}")
 
-
     def load_sprites(self):
-        # Load walk/fly sprites
+        # Load walk/fly animations
         self._load_sprite_logic(self.config["sprite_sheet_path"], self.config["animations"], 
                                 self.config["orig_frame_width"], self.config["orig_frame_height"],
                                 self.target_npc_width, self.target_npc_height)
-        # Load attack sprites
+        # Load attack animations
         self._load_sprite_logic(self.config["attack_sprite_sheet_path"], self.config["attack_animations"],
                                 self.config["attack_frame_width"], self.config["attack_frame_height"],
                                 int(self.config["attack_frame_width"]*self.config["scale_factor"]), 
                                 int(self.config["attack_frame_height"]*self.config["scale_factor"]))
-        # Load death sprites
-        self._load_sprite_logic(self.config["death_sprite_sheet_path"], self.config["death_animations"],
-                                self.config["death_frame_width"], self.config["death_frame_height"],
-                                int(self.config["death_frame_width"]*self.config["scale_factor"]),
-                                int(self.config["death_frame_height"]*self.config["scale_factor"]))
+        
+        # --- NEW: Conditionally load death sprites ---
+        # Only load from a death sheet if it's defined (i.e., for Orcs)
+        if self.config.get("death_sprite_sheet_path"):
+            self._load_sprite_logic(self.config.get("death_sprite_sheet_path"), self.config["death_animations"],
+                                    self.config["death_frame_width"], self.config["death_frame_height"],
+                                    int(self.config["death_frame_width"]*self.config["scale_factor"]),
+                                    int(self.config["death_frame_height"]*self.config["scale_factor"]))
 
+        # Set a default idle image
         idle_src = self.config.get("idle_frames_source_anim")
         if idle_src and idle_src in self.animations and self.animations[idle_src]:
             self.idle_image_base = self.animations[idle_src][0]
         elif self.animations:
             self.idle_image_base = next(iter(self.animations.values()))[0]
-
-        if self.idle_image_base is None: self.idle_image_base = pygame.Surface((self.target_npc_width, self.target_npc_height), pygame.SRCALPHA)
-        for anim_key in list(self.config["animations"].keys()) + list(self.config["attack_animations"].keys()) + list(self.config["death_animations"].keys()):
-            if anim_key not in self.animations: self.animations[anim_key] = [self.idle_image_base]
             
     def take_damage(self, amount):
         if self.is_dead: return
         self.health -= amount
+        
+        if NPC_HURT_SOUND:
+            NPC_HURT_SOUND.play()
+
         print(f"{self.npc_type} took damage, health is now {self.health}")
         if self.health <= 0:
             self.health = 0
@@ -220,8 +208,9 @@ class NPC:
         
         self.sprite_flipped = (self.npc_type == "demon" and self.facing_direction == "right")
 
-    def start_grid_move(self, dx, dy, player, other_npcs, allow_obstacle_fly=False):
+    def start_grid_move(self, dx, dy, player, other_npcs):
         if self.is_grid_moving or self.is_attacking or self.is_dead: return False
+        
         next_grid_x, next_grid_y = self.grid_x + dx, self.grid_y + dy
 
         if not (0 <= next_grid_y < self.maze.height and 0 <= next_grid_x < self.maze.width): return False 
@@ -229,13 +218,15 @@ class NPC:
         target_tile = self.maze.grid[next_grid_y][next_grid_x]
         can_move = self.maze.is_walkable(next_grid_x, next_grid_y)
         
-        if not can_move and self.npc_type == "demon" and allow_obstacle_fly and isinstance(target_tile, (RockCube, WoodCube)):
-            can_move = True
-            self.is_flying_high = True
+        if not can_move and self.npc_type == "demon" and isinstance(target_tile, (RockCube, WoodCube)):
+            if random.random() < self.config['fly_over_obstacle_chance']:
+                can_move = True
+                self.is_flying_high = True
         elif can_move and self.is_flying_high:
             self.is_flying_high = False
 
         if not can_move: return False 
+
         if player and next_grid_x == player.grid_x and next_grid_y == player.grid_y: return False
         for npc in other_npcs:
             if next_grid_x == npc.grid_x and next_grid_y == npc.grid_y and not npc.is_dead: return False
@@ -261,7 +252,6 @@ class NPC:
         dir_map = {"left": (-1, 0), "right": (1, 0), "up": (0, -1), "down": (0, 1)}
         facing_dx, facing_dy = dir_map[self.facing_direction]
 
-        # Check if player is in a line in front of NPC
         if facing_dx != 0 and dist_y == 0 and math.copysign(1, dist_x) == facing_dx:
             return abs(dist_x) <= self.config["detection_range"]
         if facing_dy != 0 and dist_x == 0 and math.copysign(1, dist_y) == facing_dy:
@@ -272,7 +262,6 @@ class NPC:
     def update_fsm(self, dt, player, other_npcs):
         if self.is_dead or self.is_attacking: return
 
-        # High-priority state changes
         player_detected = self.check_player_detection(player)
         dist_to_player = math.hypot(player.grid_x - self.grid_x, player.grid_y - self.grid_y)
 
@@ -285,7 +274,6 @@ class NPC:
             self.fsm_timer = random.uniform(1.0, 2.0)
             self.grid_move_duration = self.config["movement_speed_duration"]
 
-        # Handle states
         self.fsm_timer -= dt
         
         if self.fsm_state == 'chasing':
@@ -297,7 +285,6 @@ class NPC:
                 self.anim_frame_index = 0
                 print(f"{self.npc_type} is attacking player!")
             elif not self.is_grid_moving:
-                # Simple chase logic: move towards player
                 dx, dy = player.grid_x - self.grid_x, player.grid_y - self.grid_y
                 if abs(dx) > abs(dy):
                     self.start_grid_move(int(math.copysign(1, dx)), 0, player, other_npcs)
@@ -341,26 +328,39 @@ class NPC:
         current_anim_frames = []
         
         if self.is_dead:
-            anim_key = "death"
+            # --- UPDATED: Conditional death animation logic ---
+            if self.npc_type == 'demon':
+                # Demons use their attack animation for death.
+                anim_key = "attack"
+            else:
+                # Other NPCs (Orcs) use their dedicated death animation.
+                anim_key = "death"
         elif self.is_attacking:
-            if self.npc_type == 'demon': anim_key = "attack"
-            else: anim_key = "attack_" + self.facing_direction
+            if self.npc_type == 'demon':
+                anim_key = "attack"
+            else:
+                anim_key = "attack_" + self.facing_direction
         elif self.is_moving_animation_active:
-            if self.npc_type == 'demon': anim_key = "fly"
-            else: anim_key = "walk_" + self.facing_direction
+            if self.npc_type == 'demon':
+                anim_key = "fly"
+            else:
+                anim_key = "walk_" + self.facing_direction
         
         if anim_key and anim_key in self.animations:
             current_anim_frames = self.animations[anim_key]
         
         if not current_anim_frames:
             self._update_idle_image_and_flip_status()
+            self.current_base_image = self.idle_image_base
             return
         
         self.anim_timer += dt
         if self.anim_timer >= self.animation_playback_speed:
             self.anim_timer -= self.animation_playback_speed
-            # Don't loop death/attack animations
-            if not (self.is_dead or self.is_attacking) or self.anim_frame_index < len(current_anim_frames) - 1:
+            # Death and Attack animations should not loop.
+            if (self.is_dead or self.is_attacking) and self.anim_frame_index >= len(current_anim_frames) - 1:
+                 self.anim_frame_index = len(current_anim_frames) - 1
+            else:
                 self.anim_frame_index = (self.anim_frame_index + 1) % len(current_anim_frames)
         
         self.current_base_image = current_anim_frames[self.anim_frame_index]
@@ -371,20 +371,18 @@ class NPC:
         if self.is_dead:
             self.death_timer += dt
             self.update_animation(dt)
-            # When death is finished, it will be removed by the main loop
             return
 
         if self.is_attacking:
             self.attack_timer += dt
-            # Simple logic: damage applied halfway through attack animation
             if self.attack_timer >= self.config["attack_duration"] / 2 and self.attack_timer - dt < self.config["attack_duration"] / 2:
-                 dist_to_player = math.hypot(player.grid_x - self.grid_x, player.grid_y - self.grid_y)
-                 if dist_to_player <= self.config["attack_range"]:
-                     player.take_damage(1) # Deal 1 damage
+                dist_to_player = math.hypot(player.grid_x - self.grid_x, player.grid_y - self.grid_y)
+                if dist_to_player <= self.config["attack_range"]:
+                    player.take_damage(1)
             
             if self.attack_timer >= self.config["attack_duration"]:
                 self.is_attacking = False
-                self.fsm_state = 'chasing' # Go back to chasing after attack
+                self.fsm_state = 'chasing' 
                 self.attack_cooldown = self.config["attack_interval"]
                 self.anim_frame_index = 0
             self.update_animation(dt)

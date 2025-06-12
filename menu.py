@@ -13,6 +13,11 @@ class Menu:
 
         # --- Load Assets ---
         self.background_image = self._load_image("./assets/Menu/Background.png", self.screen_rect.size)
+        try:
+            self.click_sound = pygame.mixer.Sound('./assets/click.mp3')
+        except pygame.error as e:
+            print(f"Warning: Could not load click sound: {e}")
+            self.click_sound = None
         
         # --- Font Loading ---
         try:
@@ -27,7 +32,7 @@ class Menu:
             self.button_font = pygame.font.SysFont("arial", 40,bold=True),
 
         # --- Title and UI Text ---
-        self.title_surface = self.title_font.render("A MAN WITH A SWORD", True, (255, 255, 255))
+        self.title_surface = self.title_font.render("THE DUNDEON WARRIOR", True, (255, 255, 255))
         self.title_rect = self.title_surface.get_rect(center=(self.screen_rect.centerx, 100))
 
         self.vs_text_surface = self.vs_font.render("VS", True, (200, 200, 220))
@@ -127,7 +132,9 @@ class Menu:
                 return "exit"
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 for button in self.buttons:
-                    if button['rect'].collidepoint(mouse_pos): 
+                    if button['rect'].collidepoint(mouse_pos):
+                        if self.click_sound:
+                            self.click_sound.play()
                         return button['action']
 
         for button in self.buttons: 

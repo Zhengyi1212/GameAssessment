@@ -9,15 +9,9 @@ class Menu:
     def __init__(self, screen):
         self.screen = screen
         self.screen_rect = screen.get_rect()
-        self.clock = pygame.time.Clock()
-
+        
         # --- Load Assets ---
         self.background_image = self._load_image("./assets/Menu/Background.png", self.screen_rect.size)
-        try:
-            self.click_sound = pygame.mixer.Sound('./assets/click.mp3')
-        except pygame.error as e:
-            print(f"Warning: Could not load click sound: {e}")
-            self.click_sound = None
         
         # --- Font Loading ---
         try:
@@ -32,20 +26,18 @@ class Menu:
             self.button_font = pygame.font.SysFont("arial", 40,bold=True),
 
         # --- Title and UI Text ---
-        self.title_surface = self.title_font.render("THE DUNDEON WARRIOR", True, (255, 255, 255))
+        self.title_surface = self.title_font.render("THE DUNGEON WARRIOR", True, (255, 255, 255))
         self.title_rect = self.title_surface.get_rect(center=(self.screen_rect.centerx, 100))
-
         self.vs_text_surface = self.vs_font.render("VS", True, (200, 200, 220))
         self.vs_text_rect = self.vs_text_surface.get_rect(center=(self.screen_rect.centerx - 30, self.screen_rect.centery + 250))
 
-        # --- New Button System ---
+        # --- Button System ---
         self.buttons = []
         self._create_text_buttons()
 
         # --- Character Showcase Setup ---
         self.showcase_player, self.showcase_npcs = {}, []
         self._setup_characters()
-        
         self.showcase_timer, self.showcase_switch_interval = 0, 2 
 
     def _load_image(self, path, scale_to=None):
@@ -67,7 +59,6 @@ class Menu:
 
     def _setup_characters(self):
         ground_y = self.screen_rect.height - (TARGET_PLAYER_HEIGHT * 1.3) + 60
-
         player = Player(0, 0, None)
         player.facing_direction = "right"
         player.current_screen_x, player.current_screen_y = 180, ground_y
@@ -90,56 +81,46 @@ class Menu:
         p_info = self.showcase_player
         player_obj = p_info['object']
         p_anim = p_info['animations'][p_info['current_anim_index']]
-        
-        if p_anim == 'attack':
-            player_obj.start_attack()
-        else:
-            player_obj.current_action = 'idle'
-            player_obj.is_attacking = False
-
+        if p_anim == 'attack': player_obj.start_attack()
+        else: player_obj.current_action, player_obj.is_attacking = 'idle', False
 
         for n_info in self.showcase_npcs:
             npc, n_anim = n_info['object'], n_info['animations'][n_info['current_anim_index']]
             npc.is_moving_animation_active = 'walk' in n_anim or 'fly' in n_anim
-            if npc.is_moving_animation_active: 
-                direction = n_anim.split('_')[-1]
-                npc.facing_direction = direction
+            if npc.is_moving_animation_active: npc.facing_direction = n_anim.split('_')[-1]
 
     def _draw_characters(self):
-        # Draw Player
         player_obj = self.showcase_player['object']
         if player_obj.current_image:
             w, h = player_obj.current_image.get_size()
             scaled_image = pygame.transform.scale(player_obj.current_image, (int(w * 1.3), int(h * 1.3)))
             self.screen.blit(scaled_image, (player_obj.current_screen_x, player_obj.current_screen_y))
 
-        # Draw NPCs
         for npc_info in self.showcase_npcs:
             npc_obj = npc_info['object']
             image_to_draw = npc_obj.current_base_image
             if image_to_draw:
-                if npc_obj.sprite_flipped:
-                    image_to_draw = pygame.transform.flip(image_to_draw, True, False)
+                if npc_obj.sprite_flipped: image_to_draw = pygame.transform.flip(image_to_draw, True, False)
                 w, h = image_to_draw.get_size()
                 scaled_image = pygame.transform.scale(image_to_draw, (int(w * 1.3), int(h * 1.3)))
                 self.screen.blit(scaled_image, (npc_obj.current_screen_x, npc_obj.current_screen_y))
 
     def run(self, events):
-        dt, mouse_pos = self.clock.tick(60) / 1000.0, pygame.mouse.get_pos()
-
-        for event in events:
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE: 
-                return "exit"
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                for button in self.buttons:
-                    if button['rect'].collidepoint(mouse_pos):
-                        if self.click_sound:
-                            self.click_sound.play()
-                        return button['action']
-
+        """Processes events and returns the chosen action."""
+        mouse_pos = pygame.mouse.get_pos()
         for button in self.buttons: 
             button['hovered'] = button['rect'].collidepoint(mouse_pos)
 
+        for event in events:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE: return "exit"
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                for button in self.buttons:
+                    if button['rect'].collidepoint(mouse_pos):
+                        return button['action']
+        return None
+
+    def update_showcase(self, dt):
+        """Updates the character animations."""
         self.showcase_timer += dt
         if self.showcase_timer >= self.showcase_switch_interval:
             self.showcase_timer = 0
@@ -152,6 +133,8 @@ class Menu:
         for info in self.showcase_npcs: 
             info['object'].update_animation(dt)
 
+    def draw(self):
+        """Draws the entire menu screen."""
         if self.background_image: self.screen.blit(self.background_image, (0, 0))
         else: self.screen.fill((46, 80, 93))
         
